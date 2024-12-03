@@ -72,6 +72,10 @@ def eval_score(p, r):
     return (r*p+(1-r)*(1-p))
 
 def train(epochs=5):
+    """
+    Args:
+    
+    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     prob_model = ProbModel(device=device, codegen=False)
     dataset = Dataset()

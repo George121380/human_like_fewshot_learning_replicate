@@ -10,7 +10,8 @@ class X2Concept:
         pass
 
     def get_concept_from_X_list(self, x_list:List[int]) -> List[str]:
-        # return a list of concepts
+        # TODO:
+        # return a list of concepts with a number of self.C_num_return
         if self.use_api:
             concept_list = []
             for i in range(self.C_num_return):

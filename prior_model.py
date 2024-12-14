@@ -9,8 +9,8 @@ from utils import gather_log_probabilities
 
 
 class PriorModel:
-    def __init__(self, device, mlp_path=None, model_path='/media/george/Projects/Labs/CogSci_labs/models/all-MiniLM-L6-v2', hidden_size=384):
-        self.model = SentenceTransformer(model_path).to(device)
+    def __init__(self, device, mlp_path=None, hidden_size=384):
+        self.model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2').to(device)
         self.mlp = torch.nn.Linear(hidden_size, 1).to(device)
         if mlp_path is not None:
             self.mlp.load_state_dict(torch.load(mlp_path))

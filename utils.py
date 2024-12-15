@@ -13,3 +13,10 @@ def gather_log_probabilities(
         index=labels.unsqueeze(dim=-1),
     )
     return gathered_log_probs.squeeze(dim=-1)  # size = (B, L)
+
+def remove_eligal_characters(text: str) -> str:
+    """Remove illegal characters from the given text."""
+    text = text.replace("'", "")
+    text = text.replace("`", "")
+    text = text.replace("python", "")
+    return text

@@ -15,7 +15,8 @@ class X2Concept:
         # TODO:
         # return a list of concepts with a number of self.C_num_return
         if self.use_api:
-            concept_list = []
-            for i in range(self.C_num_return):
-                concept_list.append("Odd number")
-            return concept_list
+            system_prompt = f"Given a set of numbers, output {self.C_num_return} associated with these numbers. Try to generate diverse concepts without overlapping."
+            user_prompt=x2concept_prompt(x_list)
+            concepts=ask_GPT(system_prompt,user_prompt)
+            concepts=concepts.split(",")
+            return concepts

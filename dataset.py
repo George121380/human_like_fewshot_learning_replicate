@@ -13,7 +13,7 @@ class Dataset:
             l = eval(l)
             if not isinstance(l, list):
                 l = [l]
-            print(f"The given list of file{file}: {l}")
+            print(f"The given list of file {file}: {l}")
             file_path = os.path.join(dir_path, file)
             # load csv data
             csv_reader = csv.reader(open(file_path, 'r'))

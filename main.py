@@ -37,17 +37,23 @@ class ProbModel:
                     # 创建独立的命名空间
                     local_namespace = {}
                     # 在命名空间中执行代码
-                    exec(program, {}, local_namespace)
-                    def test(x):
-                        # 在特定环境中调用函数
-                        if "test_function" in local_namespace:
-                            try:
-                                result = local_namespace["test_function"](x)
-                                return result
-                            except:
-                                return False
-                        else:
-                            print("函数未定义")
+                    try:
+                        exec(program, {}, local_namespace)
+                        def test(x):
+                            # 在特定环境中调用函数
+                            if "test_function" in local_namespace:
+                                try:
+                                    result = local_namespace["test_function"](x)
+                                    return result
+                                except:
+                                    # self.info_logger.write(f"test_function error\n")
+                                    return False
+                            else:
+                                print("函数未定义")
+                    except:
+                        self.info_logger.write(f"exec error\n")
+                        def test(x):
+                            return False
                     
                     select_total = 0 # number that satisfy the concept
                     for i in self.range:
@@ -71,6 +77,7 @@ class ProbModel:
                 p = 0
                 for concept in concept_list:
                     p += w_c_dict[concept] / w_total * xtest_c_dict[concept]
+                self.info_logger.write(f"p: {p.item()}\n")
                 return p
             except Exception as e:
                 self.error_logger.write(e)
@@ -132,8 +139,7 @@ def eval():
         x_list, x_test, r = dataset.get_data(idx)
         p = prob_model.inference(x_list, x_test)
         all_score.append(eval_score(p, r))
-        print(eval_score(p, r))
     print(f"Final score: {(sum(all_score)/len(all_score)).item()}")
 
 if __name__ == "__main__":
-    train()
+    eval()

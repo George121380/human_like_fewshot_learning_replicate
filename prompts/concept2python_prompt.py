@@ -16,7 +16,7 @@ def test_function(x):
 
 # concept: Perfect squares less than 100
 python function:
-def test_funct(x):
+def test_function(x):
     if n < 0:
         return False
     root = int(n**0.5)

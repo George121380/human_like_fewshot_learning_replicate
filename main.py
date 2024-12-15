@@ -5,18 +5,25 @@ from x2concept import X2Concept
 from concept2Python import Concept2Python
 from utils import remove_eligal_characters
 import torch
+import os
+import matplotlib.pyplot as plt
 
 class ProbModel:
-    def __init__(self, device, eps=0.01, range=range(1,101), codegen=True) -> None:
+    def __init__(self, device, eps=0.01, range=range(1,101), codegen=True, C_num_return=3) -> None:
         if codegen:
             self.prior_model = PriorModelCodegen(device=device)
         else:
             self.prior_model = PriorModel(device=device)
-        self.x2concept = X2Concept(C_num_return=3)
+        self.x2concept = X2Concept(C_num_return=C_num_return)
         self.concept2python = Concept2Python(device=device)
         self.eps = eps
         self.range = range
-        self.info_logger = open("info.log", "w")
+        if "logs" not in os.listdir():
+            os.mkdir("logs")
+        if codegen:
+            self.info_logger = open(f"logs/{C_num_return}-codegen.log", "w")
+        else:
+            self.info_logger = open(f"logs/{C_num_return}.log", "w")
         self.error_logger = open("error.log", "w")
 
     def forward(self, x_list, x_test):
@@ -32,7 +39,7 @@ class ProbModel:
                 for concept in concept_list:
                     p_c = self.prior_model.forward(concept)
                     program = self.concept2python.get_program_from_concept(concept)
-                    self.info_logger.write(f"concept: {concept} program: {program}\n")
+                    self.info_logger.write(f"concept: {concept} prior: {p_c.tolist()} program: {program}\n")
                     program = remove_eligal_characters(program)
                     # 创建独立的命名空间
                     local_namespace = {}
@@ -78,6 +85,7 @@ class ProbModel:
                 for concept in concept_list:
                     p += w_c_dict[concept] / w_total * xtest_c_dict[concept]
                 self.info_logger.write(f"p: {p.item()}\n")
+                self.info_logger.write("\n")
                 return p
             except Exception as e:
                 self.error_logger.write(e)
@@ -130,16 +138,42 @@ def train(epochs=5):
             all_score.append(eval_score(p, r))
         print(f"Epoch {epoch+1} score: {(sum(all_score)/len(all_score)).item()}")
 
-def eval():
+def eval(C_num_return=20):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    prob_model = ProbModel(device=device, codegen=True)
+    prob_model = ProbModel(device=device, codegen=True, C_num_return=C_num_return)
     dataset = Dataset()
     all_score = []
     for idx in tqdm(range(dataset.get_length())):
         x_list, x_test, r = dataset.get_data(idx)
         p = prob_model.inference(x_list, x_test)
         all_score.append(eval_score(p, r))
-    print(f"Final score: {(sum(all_score)/len(all_score)).item()}")
+    final_score = (sum(all_score)/len(all_score)).item()
+    print(f"Final score: {final_score}")
+    return final_score
+
+def draw(C_num_return=20):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    prob_model = ProbModel(device=device, codegen=True, C_num_return=C_num_return)
+    dataset = Dataset()
+    pred = []
+    target = []
+    for idx in tqdm(range(dataset.get_length())):
+        x_list, x_test, r = dataset.get_data(idx)
+        p = prob_model.inference(x_list, x_test)
+        pred.append(p.item())
+        target.append(r)
+    plt.scatter(pred, target)
+    plt.xlabel("Predict")
+    plt.ylabel("Target")
+    plt.savefig(f"logs/{C_num_return}.png")
+
+def eval_all():
+    scores = []
+    cnums = [1,2,3,5,10,30]
+    for i in cnums:
+        scores.append(eval(i))
+    for i, score in zip(cnums, scores):
+        print(f"C_num_return: {i}, score: {score}")
 
 if __name__ == "__main__":
-    eval()
+    draw()

@@ -3,19 +3,19 @@ def concept2python_prompt(concept):
 ## Concept
 The concept is:{concept}
 
-## Example:
+## Examples:
 # concept: even number
-python function:
+# python function:
 def test_function(x):
     return x%2==0
 
 # concept: numbers larger than 5
-python function:
+# python function:
 def test_function(x):
     return x>5
 
 # concept: Perfect squares less than 100
-python function:
+# python function:
 def test_function(x):
     if n < 0:
         return False

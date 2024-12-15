@@ -16,16 +16,23 @@ class ProbModel:
         self.concept2python = Concept2Python(device=device)
         self.eps = eps
         self.range = range
+        self.info_logger = open("info.log", "w")
+        self.error_logger = open("error.log", "w")
 
     def forward(self, x_list, x_test):
-        while True:
+        for i in range(3):
+            # 尝试三次，如果失败则记录错误
             try:
                 concept_list = self.x2concept.get_concept_from_X_list(x_list)
+                self.info_logger.write(f"x_list: {x_list}\n")
+                self.info_logger.write(f"x_test: {x_test}\n")
+                self.info_logger.write(f"concept_list: {concept_list}\n")
                 w_c_dict = dict()
                 xtest_c_dict = dict()
                 for concept in concept_list:
                     p_c = self.prior_model.forward(concept)
                     program = self.concept2python.get_program_from_concept(concept)
+                    self.info_logger.write(f"concept: {concept} program: {program}\n")
                     program = remove_eligal_characters(program)
                     # 创建独立的命名空间
                     local_namespace = {}
@@ -34,8 +41,11 @@ class ProbModel:
                     def test(x):
                         # 在特定环境中调用函数
                         if "test_function" in local_namespace:
-                            result = local_namespace["test_function"](x)
-                            return result
+                            try:
+                                result = local_namespace["test_function"](x)
+                                return result
+                            except:
+                                return False
                         else:
                             print("函数未定义")
                     
@@ -62,18 +72,20 @@ class ProbModel:
                 for concept in concept_list:
                     p += w_c_dict[concept] / w_total * xtest_c_dict[concept]
                 return p
-            except:
+            except Exception as e:
+                self.error_logger.write(e)
                 with open("error.log", "a") as f:
                     f.write(f"x_list: {x_list}, x_test: {x_test}, concept_list: {concept_list}\n")
                     f.write(f"w_c_dict: {w_c_dict}, xtest_c_dict: {xtest_c_dict}\n")
-                    f.write(f"p: {p}\n")
                     f.write(f"program: {program}\n")
+                    f.write(f"p: {p}\n")
                     f.write(f"local_namespace: {local_namespace}\n")
                     f.write(f"select_total: {select_total}\n")
                     f.write(f"concept: {concept}\n")
                     f.write(f"range: {self.range}\n")
                     f.write(f"error\n")
                     f.write("\n")
+        raise Exception("Failed to get the result")
     
     def inference(self, x_list, x_test):
         with torch.no_grad():

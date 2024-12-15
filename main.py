@@ -11,7 +11,7 @@ class ProbModel:
             self.prior_model = PriorModelCodegen(device=device)
         else:
             self.prior_model = PriorModel(device=device)
-        self.x2concept = X2Concept()
+        self.x2concept = X2Concept(C_num_return=3)
         self.concept2python = Concept2Python(device=device)
         self.eps = eps
         self.range = range

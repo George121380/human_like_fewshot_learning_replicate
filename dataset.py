@@ -2,7 +2,7 @@ import os
 import csv
 
 class Dataset:
-    def __init__(self, dir_path='/media/george/Projects/Labs/CogSci_labs/tenenbaum_data', data=None):
+    def __init__(self, dir_path='tenenbaum_data', data=None):
         if data is not None:
             self.data = data
             return

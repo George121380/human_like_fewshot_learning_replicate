@@ -9,19 +9,20 @@ class Dataset:
         file_list = os.listdir(dir_path)
         self.data = []
         for file in file_list:
+            l = file.split('.')[0]
+            l = eval(l)
+            print(f"The given list of file{file}: {l}")
             file_path = os.path.join(dir_path, file)
             # load csv data
-            all_num = []
             csv_reader = csv.reader(open(file_path, 'r'))
             for row in csv_reader:
                 num = int(row[0])
                 rate = float(row[1])
                 self.data.append((
-                    all_num.copy(),
+                    l,
                     num,
                     rate
                 ))
-                all_num.append(num)
         print(f"Loaded {len(self.data)} data points")
     def get_length(self):
         return len(self.data)

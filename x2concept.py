@@ -1,4 +1,6 @@
 from typing import List
+from ask_GPT import ask_GPT
+from prompts.x2concept_prompt import x2concept_prompt
 
 class X2Concept:
     def __init__(self, path=None, C_num_return=50) -> None:

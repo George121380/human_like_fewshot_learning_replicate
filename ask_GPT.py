@@ -37,8 +37,3 @@ def ask_GPT(system,content):
             print(e)
             time.sleep(1)
             continue
-
-if __name__ == '__main__':
-    
-    answer=ask_GPT("class Concept2Python:\n    def __init__(self, device) -> None:\n        self.device = device\n        pass\n\n    def get_program_from_concept(self, concept: str) -> str:\n        # TODO:\n        # return a python program that can be used to test the concept\n        # 返回的测试函数的名字是test_function\n        return f\"def test_function(x):\\n    return x%2==0\\n\"","")
-    print(answer)

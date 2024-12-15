@@ -20,6 +20,7 @@ class PriorModel:
         vector = self.model.encode(sentences)
         vector = torch.tensor(vector).to(self.device)
         prior = self.mlp(vector)
+        prior = 1. / (1. + torch.exp(-prior))
         return prior
     
     def save_mlp(self, path):

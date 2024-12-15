@@ -18,12 +18,11 @@ class ProbModel:
         self.concept2python = Concept2Python(device=device)
         self.eps = eps
         self.range = range
+        self.codegen = codegen
         if "logs" not in os.listdir():
             os.mkdir("logs")
         if codegen:
             self.info_logger = open(f"logs/{C_num_return}-codegen.log", "w")
-        else:
-            self.info_logger = open(f"logs/{C_num_return}.log", "w")
         self.error_logger = open("error.log", "w")
 
     def forward(self, x_list, x_test):
@@ -31,15 +30,17 @@ class ProbModel:
             # 尝试三次，如果失败则记录错误
             try:
                 concept_list = self.x2concept.get_concept_from_X_list(x_list)
-                self.info_logger.write(f"x_list: {x_list}\n")
-                self.info_logger.write(f"x_test: {x_test}\n")
-                self.info_logger.write(f"concept_list: {concept_list}\n")
+                if self.codegen:
+                    self.info_logger.write(f"x_list: {x_list}\n")
+                    self.info_logger.write(f"x_test: {x_test}\n")
+                    self.info_logger.write(f"concept_list: {concept_list}\n")
                 w_c_dict = dict()
                 xtest_c_dict = dict()
                 for concept in concept_list:
                     p_c = self.prior_model.forward(concept)
                     program = self.concept2python.get_program_from_concept(concept)
-                    self.info_logger.write(f"concept: {concept} prior: {p_c.tolist()} program: {program}\n")
+                    if self.codegen:
+                        self.info_logger.write(f"concept: {concept} prior: {p_c.item()} program: {program}\n")
                     program = remove_eligal_characters(program)
                     # 创建独立的命名空间
                     local_namespace = {}
@@ -58,7 +59,8 @@ class ProbModel:
                             else:
                                 print("函数未定义")
                     except:
-                        self.info_logger.write(f"exec error\n")
+                        if self.codegen:
+                            self.info_logger.write(f"exec error\n")
                         def test(x):
                             return False
                     
@@ -84,8 +86,9 @@ class ProbModel:
                 p = 0
                 for concept in concept_list:
                     p += w_c_dict[concept] / w_total * xtest_c_dict[concept]
-                self.info_logger.write(f"p: {p.item()}\n")
-                self.info_logger.write("\n")
+                if self.codegen:
+                    self.info_logger.write(f"p: {p.item()}\n")
+                    self.info_logger.write("\n")
                 return p
             except Exception as e:
                 self.error_logger.write(e)
@@ -114,16 +117,17 @@ class ProbModel:
 def eval_score(p, r):
     return (r*p+(1-r)*(1-p))
 
-def train(epochs=5):
+def train(epochs=100, C_num_return=5):
     """
     Args:
     
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    prob_model = ProbModel(device=device, codegen=False)
+    prob_model = ProbModel(device=device, codegen=False, C_num_return=C_num_return)
     dataset = Dataset()
     train_dataset, test_dataset = dataset.split()
     optimizer = torch.optim.Adam(prob_model.prior_model.mlp.parameters(), lr=0.01)
+    logger = open(f"logs/{C_num_return}-tuning.log", "w")
     for epoch in range(epochs):
         for idx in tqdm(range(train_dataset.get_length())):
             x_list, x_test, r = train_dataset.get_data(idx)
@@ -137,10 +141,34 @@ def train(epochs=5):
             p = prob_model.inference(x_list, x_test)
             all_score.append(eval_score(p, r))
         print(f"Epoch {epoch+1} score: {(sum(all_score)/len(all_score)).item()}")
+        logger.write(f"Epoch {epoch+1} score: {(sum(all_score)/len(all_score)).item()}\n")
+        for key, value in prob_model.x2concept.cache.items():
+            logger.write(f"x list: {key}\n")
+            with torch.no_grad():
+                for v in value:
+                    prior = prob_model.prior_model.forward(v).item()
+                    logger.write(f"concept: {v} prior: {prior}\n")
+            
+    pred = []
+    target = []
+    for idx in tqdm(range(dataset.get_length())):
+        x_list, x_test, r = dataset.get_data(idx)
+        p = prob_model.inference(x_list, x_test)
+        all_score.append(eval_score(p, r))
+        pred.append(p.item())
+        target.append(r)
+    final_score = (sum(all_score)/len(all_score)).item()
+    print(f"Final score: {final_score}")
+    plt.scatter(pred, target)
+    plt.xlabel("Predict")
+    plt.ylabel("Target")
+    plt.savefig(f"logs/{C_num_return}-tuning.png")
+    plt.close()
+    return final_score
 
-def eval(C_num_return=20):
+def eval(C_num_return=20, codegen=True):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    prob_model = ProbModel(device=device, codegen=True, C_num_return=C_num_return)
+    prob_model = ProbModel(device=device, codegen=codegen, C_num_return=C_num_return)
     dataset = Dataset()
     all_score = []
     for idx in tqdm(range(dataset.get_length())):
@@ -175,5 +203,13 @@ def eval_all():
     for i, score in zip(cnums, scores):
         print(f"C_num_return: {i}, score: {score}")
 
+def train_all():
+    scores = []
+    cnums = [30,100]
+    for i in cnums:
+        scores.append(train(epochs=30, C_num_return=i))
+    for i, score in zip(cnums, scores):
+        print(f"C_num_return: {i}, score: {score}")
+
 if __name__ == "__main__":
-    draw()
+    train_all()

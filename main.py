@@ -9,12 +9,15 @@ import os
 import matplotlib.pyplot as plt
 
 class ProbModel:
-    def __init__(self, device, eps=0.01, range=range(1,101), codegen=True, C_num_return=3) -> None:
+    def __init__(self, device, eps=0.01, range=range(1,101), codegen=True, C_num_return=3, useMSE=False, fixed_return=None) -> None:
         if codegen:
             self.prior_model = PriorModelCodegen(device=device)
         else:
             self.prior_model = PriorModel(device=device)
-        self.x2concept = X2Concept(C_num_return=C_num_return)
+        if fixed_return is not None:
+            self.x2concept = X2Concept(C_num_return=C_num_return, fixed_return=fixed_return)
+        else:
+            self.x2concept = X2Concept(C_num_return=C_num_return)
         self.concept2python = Concept2Python(device=device)
         self.eps = eps
         self.range = range
@@ -24,6 +27,11 @@ class ProbModel:
         if codegen:
             self.info_logger = open(f"logs/{C_num_return}-codegen.log", "w")
         self.error_logger = open("error.log", "w")
+        if useMSE:
+            self.loss_fn = torch.nn.MSELoss()
+        else:
+            self.loss_fn = torch.nn.CrossEntropyLoss()
+        self.loss_fn.to(device)
 
     def forward(self, x_list, x_test):
         for i in range(3):
@@ -111,23 +119,24 @@ class ProbModel:
         
     def loss(self, x_list, x_test, r):
         p = self.forward(x_list, x_test)
-        return -(r*p+(1-r)*(1-p))
+        r = torch.tensor([r]).to(p.device)
+        return self.loss_fn(p, r)
 
 #TODO: Score function between output and target
 def eval_score(p, r):
     return (r*p+(1-r)*(1-p))
 
-def train(epochs=100, C_num_return=5):
+def train(epochs=100, C_num_return=5, useMSE=False):
     """
     Args:
     
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    prob_model = ProbModel(device=device, codegen=False, C_num_return=C_num_return)
+    prob_model = ProbModel(device=device, codegen=False, C_num_return=C_num_return, useMSE=useMSE)
     dataset = Dataset()
     train_dataset, test_dataset = dataset.split()
     optimizer = torch.optim.Adam(prob_model.prior_model.mlp.parameters(), lr=0.01)
-    logger = open(f"logs/{C_num_return}-tuning.log", "w")
+    logger = open(f"logs/{C_num_return}-tuning-mse.log", "w")
     for epoch in range(epochs):
         for idx in tqdm(range(train_dataset.get_length())):
             x_list, x_test, r = train_dataset.get_data(idx)
@@ -162,7 +171,7 @@ def train(epochs=100, C_num_return=5):
     plt.scatter(pred, target)
     plt.xlabel("Predict")
     plt.ylabel("Target")
-    plt.savefig(f"logs/{C_num_return}-tuning.png")
+    plt.savefig(f"logs/{C_num_return}-tuning-mse.png")
     plt.close()
     return final_score
 
@@ -197,7 +206,7 @@ def draw(C_num_return=20):
 
 def eval_all():
     scores = []
-    cnums = [1,2,3,5,10,30]
+    cnums = [1,2,3,5,10,30,100]
     for i in cnums:
         scores.append(eval(i))
     for i, score in zip(cnums, scores):
@@ -205,11 +214,39 @@ def eval_all():
 
 def train_all():
     scores = []
-    cnums = [30,100]
+    cnums = [1,2,3,5,10,30,100]
     for i in cnums:
         scores.append(train(epochs=30, C_num_return=i))
     for i, score in zip(cnums, scores):
         print(f"C_num_return: {i}, score: {score}")
 
+def test_fix(cs, file_name):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    prob_model = ProbModel(device=device, codegen=True, C_num_return=5, fixed_return=cs)
+    dataset = Dataset(one_file=True)
+    pred = []
+    target = []
+    all_score = []
+    for idx in tqdm(range(dataset.get_length())):
+        x_list, x_test, r = dataset.get_data(idx)
+        p = prob_model.inference(x_list, x_test)
+        all_score.append(eval_score(p, r))
+        pred.append(p.item())
+        target.append(r)
+    final_score = (sum(all_score)/len(all_score)).item()
+    print(f"Final score: {final_score}")
+    plt.scatter(pred, target)
+    plt.xlabel("Predict")
+    plt.ylabel("Target")
+    plt.savefig(file_name)
+    plt.close()
+
+def test_concept():
+    H = ["multiple of 8","perfect square","power of 2"]
+    L = ["number larger than 1","number larger than 2", "number equal to 16"]
+    test_fix(H, 'analysis/H.png')
+    test_fix(L, 'analysis/L.png')
+    test_fix(H+L, 'analysis/H+L.png')
+
 if __name__ == "__main__":
-    train_all()
+    test_concept()

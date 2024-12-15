@@ -2,7 +2,7 @@ import os
 import csv
 
 class Dataset:
-    def __init__(self, dir_path='tenenbaum_data', data=None):
+    def __init__(self, dir_path='tenenbaum_data', data=None, one_file=False):
         if data is not None:
             self.data = data
             return
@@ -11,6 +11,9 @@ class Dataset:
         for file in file_list:
             l = file.split('.')[0]
             l = eval(l)
+            if one_file:
+                if l != 16:
+                    continue
             if not isinstance(l, list):
                 l = [l]
             print(f"The given list of file {file}: {l}")

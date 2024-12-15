@@ -11,6 +11,8 @@ class Dataset:
         for file in file_list:
             l = file.split('.')[0]
             l = eval(l)
+            if not isinstance(l, list):
+                l = [l]
             print(f"The given list of file{file}: {l}")
             file_path = os.path.join(dir_path, file)
             # load csv data

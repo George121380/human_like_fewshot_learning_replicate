@@ -28,8 +28,8 @@ class X2Concept:
             if x_list_str in self.cache:
                 concepts=self.cache[x_list_str]
                 return concepts
-            system_prompt = f"Given a set of numbers, output {self.C_num_return} associated with these numbers. Try to generate diverse concepts without overlapping. Divide the concepts with comma."
-            user_prompt=x2concept_prompt(x_list, self.C_num_return)
+            
+            system_prompt, user_prompt=x2concept_prompt(x_list, self.C_num_return)
             concepts=ask_GPT(system_prompt,user_prompt)
             concepts=concepts.split(",")
             self.cache[x_list_str]=concepts

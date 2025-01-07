@@ -1,6 +1,7 @@
 def x2concept_prompt(x_list, C_num_return):
     list_str = ', '.join([str(x) for x in x_list])
-    return f"""
+    system_prompt = f"Given a set of numbers, output {C_num_return} associated with these numbers. Try to generate diverse concepts without overlapping. Divide the concepts with comma."
+    user_prompt = f"""
 Now you have a list of numbers: {list_str}. Please generate {C_num_return} concepts based on the list of numbers.
 
 ## Example:
@@ -30,3 +31,5 @@ Now you have a list of numbers: {list_str}. Please generate {C_num_return} conce
 ## Output Fromat:
 Directly output the concepts without any explaination and annotation. Divide the concepts with comma.
 """
+
+    return system_prompt, user_prompt
